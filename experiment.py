@@ -41,13 +41,14 @@ def print_sample_outcomes(model=None,
 def sample_wins_and_losses(domain=None,
                            model=None,
                            metric=None,
-                           seed=None):
+                           seed=None,
+                           printing=True):
     if seed:
         random.seed(seed)
     metric = metric or domain.training_metric()
     model = model or domain.model()
     train_examples=domain.train_examples()
-    evaluate_model(model=model,
+    metric_values = evaluate_model(model=model,
                    examples=train_examples,
                    metrics=domain.metrics(),
                    print_examples=False)
@@ -58,8 +59,11 @@ def sample_wins_and_losses(domain=None,
                                          metric=metric,
                                          metric_test=metric_test,
                                          k=k)
-    my_print_sample_outcomes(name='wins', metric_test=(lambda n: n > 0), k=5)
-    my_print_sample_outcomes(name='losses', metric_test=(lambda n: n == 0), k=10)
+    if printing:
+        my_print_sample_outcomes(name='wins', metric_test=(lambda n: n > 0), k=5)
+    if printing:
+        my_print_sample_outcomes(name='losses', metric_test=(lambda n: n == 0), k=10)
+    return metric_values
 
 # TODO: comment
 def print_parses(example,
@@ -106,11 +110,7 @@ def evaluate_model(model=None,
                    examples=[],
                    examples_label=None,
                    metrics=standard_metrics(),
-                   print_examples=True):
-    print('=' * 80)
-    print('Evaluating on %d %sexamples\n' % (
-        len(examples), examples_label + ' ' if examples_label else ''))
-    print('-' * 80)
+                   print_examples=False):
     metric_values = defaultdict(int)
     for example in examples:
         parses = model.parse_input(example.input)
@@ -119,11 +119,7 @@ def evaluate_model(model=None,
             metric_values[metric.name()] += metric_value
         if print_examples:
             print_parses(example, parses, metrics=metrics)
-    print('Over %d examples:' % len(examples))
-    print()
-    for metric in metrics:
-        print('%-34s %.3f' % (metric.name(), 1.0 * metric_values[metric.name()] / len(examples)))
-    print()
+    return metric_values
 
 # TODO: comment
 def evaluate_grammar(grammar=None,
@@ -132,7 +128,7 @@ def evaluate_grammar(grammar=None,
                      examples_label=None,
                      metrics=standard_metrics(),
                      print_examples=True):
-    evaluate_model(model=Model(grammar=grammar, executor=executor),
+    return evaluate_model(model=Model(grammar=grammar, executor=executor),
                    examples=examples,
                    metrics=metrics,
                    print_examples=print_examples)

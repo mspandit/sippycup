@@ -84,7 +84,7 @@ class GeoNamesAnnotator(Annotator):
         else:
             self.cache = self.persistent_cache
         self.cache_updated = False
-        print('Loaded GeoNamesAnnotator cache with %d items' % len(self.cache))
+        # print('Loaded GeoNamesAnnotator cache with %d items' % len(self.cache))
 
     def __del__(self):
         self.print_cache_if_updated()
@@ -187,7 +187,7 @@ class GeoNamesAnnotator(Annotator):
             #     print '        \'%s\': %s,' % (escaped_key, str(self.cache[key]))
             # print '    }'
         else:
-            print('GeoNamesAnnotator cache not updated')
+            pass # print('GeoNamesAnnotator cache not updated')
 
     # We have cached interpretations for phrases appearing in the 100 annotated
     # examples for the travel domain.  This avoids the need to make live calls

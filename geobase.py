@@ -219,7 +219,7 @@ class GeobaseReader:
       self.add_binary('contains', state_id, city3_id)
       self.add_binary('contains', state_id, city4_id)
       self.add_binary('contains', '/country/usa', state_id)
-    print('GeobaseReader read %d state rows.' % len(lines))
+    # print('GeobaseReader read %d state rows.' % len(lines))
 
   def parse_city(self, lines):
     lines = filter_by_prefix('city', lines)
@@ -236,7 +236,7 @@ class GeobaseReader:
       self.add_binary('name', city_id, city_name)
       self.add_binary('contains', state_id, city_id)
       self.add_binary('population', city_id, population)
-    print('GeobaseReader read %d city rows.' % len(lines))
+    # print('GeobaseReader read %d city rows.' % len(lines))
 
   def parse_river(self, lines):
     lines = filter_by_prefix('river', lines)
@@ -253,7 +253,7 @@ class GeobaseReader:
       self.add_binary('length', river_id, length)
       for state_name in traversed_state_names:
         self.add_binary('traverses', river_id, make_state_id(state_name))
-    print('GeobaseReader read %d river rows.' % len(lines))
+    # print('GeobaseReader read %d river rows.' % len(lines))
 
   def parse_border(self, lines):
     lines = filter_by_prefix('border', lines)
@@ -267,7 +267,7 @@ class GeobaseReader:
         bordered_state_id = make_state_id(bordered_state_name)
         self.add_binary('borders', state_id, bordered_state_id)
         self.add_binary('borders', bordered_state_id, state_id)
-    print('GeobaseReader read %d border rows.' % len(lines))
+    # print('GeobaseReader read %d border rows.' % len(lines))
 
   def parse_highlow(self, lines):
     lines = filter_by_prefix('highlow', lines)
@@ -294,7 +294,7 @@ class GeobaseReader:
       self.add_binary('lowest_point', state_id, lowest_point_id)
       self.add_binary('lowest_elevation', state_id, lowest_elevation)
       self.add_binary('height', lowest_point_id, lowest_elevation)
-    print('GeobaseReader read %d highlow rows.' % len(lines))
+    # print('GeobaseReader read %d highlow rows.' % len(lines))
 
   def parse_mountain(self, lines):
     lines = filter_by_prefix('mountain', lines)
@@ -310,7 +310,7 @@ class GeobaseReader:
       self.add_binary('name', mountain_id, mountain_name)
       self.add_binary('contains', state_id, mountain_id)
       self.add_binary('height', mountain_id, height)
-    print('GeobaseReader read %d mountain rows.' % len(lines))
+    # print('GeobaseReader read %d mountain rows.' % len(lines))
 
   def parse_road(self, lines):
     lines = filter_by_prefix('road', lines)
@@ -324,7 +324,7 @@ class GeobaseReader:
       self.add_binary('name', road_id, road_name)
       for traversed_state_name in traversed_state_names:
         self.add_binary('traverses', road_id, make_state_id(traversed_state_name))
-    print('GeobaseReader read %d road rows.' % len(lines))
+    # print('GeobaseReader read %d road rows.' % len(lines))
 
   def parse_lake(self, lines):
     lines = filter_by_prefix('lake', lines)
@@ -342,7 +342,7 @@ class GeobaseReader:
       for traversed_state_name in traversed_state_names:
         # 'traverses' may sound odd here, but, logically, it's the same relation.
         self.add_binary('traverses', lake_id, make_state_id(traversed_state_name))
-    print('GeobaseReader read %d lake rows.' % len(lines))
+    # print('GeobaseReader read %d lake rows.' % len(lines))
 
   def parse_country(self, lines):
     lines = filter_by_prefix('country', lines)
@@ -358,7 +358,7 @@ class GeobaseReader:
       self.add_binary('name', country_id, country_name)
       self.add_binary('population', country_id, population)
       self.add_binary('area', country_id, area)
-    print('GeobaseReader read %d country row.' % len(lines))
+    # print('GeobaseReader read %d country row.' % len(lines))
 
   def add_unary(self, rel, elt):
     self.tuples.add((rel, elt))
@@ -377,9 +377,13 @@ class GeobaseReader:
     before_size = len(self.tuples)
     for edge in edges:
       self.tuples.add(edge)
-    print('GeobaseReader computed transitive closure of \'%s\', adding %d edges' % (
-      rel, len(self.tuples) - before_size))
+    # print('GeobaseReader computed transitive closure of \'%s\', adding %d edges' % (
+    #   rel, len(self.tuples) - before_size))
 
 
 if __name__ == '__main__':
-  geobase = GeobaseReader()
+    reader = GeobaseReader()
+    unaries = [str(t) for t in reader.tuples if len(t) == 2]
+    print('\nSome unaries:\n  ' + '\n  '.join(unaries[:10]))
+    binaries = [str(t) for t in reader.tuples if len(t) == 3]
+    print('\nSome binaries:\n  ' + '\n  '.join(binaries[:10]))

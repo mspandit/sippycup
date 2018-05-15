@@ -1765,3 +1765,17 @@ geo880_test_examples = [
     Example(input='which is the density of the state that the largest river in the united states runs through ?',
             denotation=(1.9977186284798305e-05, 2.0663031845261368e-06, 2.7232112071659447e-05, 3.4585122380555223e-06, 3.5644820209427777e-06, 7.836924796288454e-06)),
 ]
+
+import unittest
+
+class TestMethods(unittest.TestCase):
+    def test0(self):
+        self.assertEqual(600, len(geo880_train_examples))
+        self.assertEqual(280, len(geo880_test_examples))
+        self.assertEqual('what is the highest point in florida ?', geo880_train_examples[0].input)
+        self.assertEqual(('/place/walton_county',), geo880_train_examples[0].denotation)
+        self.assertEqual('which state is the smallest ?', geo880_test_examples[0].input)
+        self.assertEqual(('/state/district_of_columbia',), geo880_test_examples[0].denotation)
+
+if "__main__" == __name__:
+    unittest.main()
