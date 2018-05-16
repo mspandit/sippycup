@@ -399,10 +399,14 @@ class TestMethodsUnit2(unittest.TestCase):
 
         domain = TravelDomain()
         rules = self.rules_travel + self.rules_travel_locations + self.rules_travel_modes
-        grammar = Unit2Grammar(rules=rules, annotators=[GeoNamesAnnotator(live_requests=False)])
+        grammar = Unit2Grammar(
+            rules=rules, 
+            annotators=[GeoNamesAnnotator(live_requests=False)])
         model = Model(grammar=grammar)
         metric = SemanticsOracleAccuracyMetric()
 
+        # If printing=True, prints a sampling of wins (correct semantics in 
+        # first parse) and losses on the dataset.
         metric_values = sample_wins_and_losses(domain=domain, model=model, metric=metric, seed=31, printing=False)
 
     rules_travel_triggers = [
@@ -428,6 +432,8 @@ class TestMethodsUnit2(unittest.TestCase):
         model = Model(grammar=grammar)
         metric = SemanticsOracleAccuracyMetric()
 
+        # If printing=True, prints a sampling of wins (correct semantics in 
+        # first parse) and losses on the dataset.
         metric_values = sample_wins_and_losses(domain=domain, model=model, metric=metric, seed=31, printing=False)
 
     rules_request_types = [
@@ -458,6 +464,8 @@ class TestMethodsUnit2(unittest.TestCase):
         model = Model(grammar=grammar)
         metric = SemanticsOracleAccuracyMetric()
 
+        # If printing=True, prints a sampling of wins (correct semantics in 
+        # first parse) and losses on the dataset.
         metric_values = sample_wins_and_losses(domain=domain, model=model, metric=metric, seed=31, printing=False)
 
     rules_optionals = [
@@ -517,6 +525,8 @@ class TestMethodsUnit2(unittest.TestCase):
         model = Model(grammar=grammar)
         metric = SemanticsOracleAccuracyMetric()
 
+        # If printing=True, prints a sampling of wins (correct semantics in 
+        # first parse) and losses on the dataset.
         metric_values = sample_wins_and_losses(domain=domain, model=model, metric=metric, seed=31, printing=False)
 
     rules_not_travel = [
@@ -541,6 +551,8 @@ class TestMethodsUnit2(unittest.TestCase):
         model = Model(grammar=grammar)
         metric = SemanticsOracleAccuracyMetric()
 
+        # If printing=True, prints a sampling of wins (correct semantics in 
+        # first parse) and losses on the dataset.
         metric_values = sample_wins_and_losses(domain=domain, model=model, metric=metric, seed=31, printing=False)
     
     

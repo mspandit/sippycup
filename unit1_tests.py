@@ -33,8 +33,10 @@ class TestMethodsUnit1(unittest.TestCase):
         self.assertEqual(3, len(arithmetic_grammar.binary_rules))
         self.assertEqual(7, len(arithmetic_grammar.lexical_rules))
 		
-		# Chart Parsing Algorithm: Grammar.parse()
+    # Chart Parsing Algorithm: Grammar.parse() produces a list of Parse objects
     
+    # 14 examples that produce a single parse
+    # Ignore semantics and denotation initially
     one_parse_examples = [
         Example(input="one plus one", semantics=('+', 1, 1), denotation=2),
         Example(input="one plus two", semantics=('+', 1, 2), denotation=3),
@@ -55,6 +57,8 @@ class TestMethodsUnit1(unittest.TestCase):
         Example(input="minus four", semantics=('~', 4), denotation=-4),
     ]
     
+    # 3 examples that produce two parses each
+    # Ignore semantics and denotation initially
     two_parse_examples = [
         Example(
 			input="minus three minus two", 
@@ -133,7 +137,7 @@ class TestMethodsUnit1(unittest.TestCase):
 
     arithmetic_rules = numeral_rules + operator_rules + compositional_rules
     
-    # Now see grammar.py:Parse.compute_semantics()
+    # grammar.py:Parse.compute_semantics() adds semantics to each parse object
 
     def test_semantics(self):
         arithmetic_grammar = Grammar(self.arithmetic_rules)
@@ -143,6 +147,14 @@ class TestMethodsUnit1(unittest.TestCase):
         self.assertEqual(('+', ('*', 2, 2), 3), parses[1].semantics)
         
     def test_evaluation(self):
+        """
+        Evaluate the grammar on all examples, collecting metrics:
+        
+        semantics oracle accuracy: # of examples where one parse or the other was
+        correct.
+
+        semantics accuracy: # of examples where parse at position 0 was correct.
+        """
         arithmetic_grammar = Grammar(self.arithmetic_rules)
         
         from executor import Executor
@@ -195,6 +207,10 @@ class TestMethodsUnit1(unittest.TestCase):
     weights[('-', '~')] = -1.0
 
     def test_operator_precedence_features(self):
+        """
+        See if a count of operator precedence patterns is a good feature for 
+        ranking parses.
+        """
         arithmetic_grammar = Grammar(self.arithmetic_rules)
         parses = arithmetic_grammar.parse("two times two plus three")
         self.assertEqual(2, len(parses))
@@ -202,7 +218,9 @@ class TestMethodsUnit1(unittest.TestCase):
         # results for the two parses
         parse0_features = parses[0].operator_precedence_features()
         parse1_features = parses[1].operator_precedence_features()
+        # In the first parse, + precedes * once
         self.assertEqual(parse0_features, {('+', '*'): 1.0})
+        # In the second parse, * precedes + once
         self.assertEqual(parse1_features, {('*', '+'): 1.0})
         
         # Look at Parse.score()
@@ -212,11 +230,19 @@ class TestMethodsUnit1(unittest.TestCase):
         parse1_score = parses[1].score(
             Parse.operator_precedence_features, 
             self.weights)
+        # Parse.operator_precedence_features() is good at distinguishing parses
         self.assertEqual(-1.0, parse0_score)
         self.assertEqual(1.0, parse1_score)
-        # Parse.operator_precedence_features() is good at distinguishing parses
 
     def test_evaluation_with_scoring(self):
+        """
+        Evaluate the grammar on all examples, collecting metrics:
+        
+        semantics oracle accuracy: # of examples where one parse or the other was
+        correct.
+
+        semantics accuracy: # of examples where parse at position 0 was correct.
+        """
         arithmetic_grammar = Grammar(self.arithmetic_rules)
         
         from executor import Executor
@@ -233,13 +259,25 @@ class TestMethodsUnit1(unittest.TestCase):
             model=arithmetic_model,
             examples=self.one_parse_examples + self.two_parse_examples
         )
-        self.assertEqual(metrics['semantics accuracy'], 16) 
+        self.assertEqual(metrics['semantics accuracy'], 16) # Improvement
         self.assertEqual(metrics['semantics oracle accuracy'], 17)
         # Exercise: introduce new features to address "three plus three minus two"
         
         # SLIDES
 
     def test_learning_from_semantics(self):
+        """
+        First 13 examples are used for training.
+        Last 4 examples are used for testing.
+        b_trn: performance metrics on training set before training
+        b_tst: performance metrics on test set before training
+        a_trn: performance metrics on training set after training
+        a_tst: performance metrics on test set after training
+
+        semantics accuracy: # of examples where parse at position 0 was correct.
+        denotation accuracy: # of examples where denotation of parse at position 
+        0 was correct
+        """
         arithmetic_grammar = Grammar(self.arithmetic_rules)
         arithmetic_examples = self.two_parse_examples + self.one_parse_examples
         
@@ -251,6 +289,7 @@ class TestMethodsUnit1(unittest.TestCase):
             weights=defaultdict(float), # Initialize with all weights at zero
             executor=Executor.execute)
             
+        # Train based on correct/incorrect semantics
         from metrics import SemanticsAccuracyMetric
         
         b_trn, b_tst, a_trn, a_tst = arithmetic_model.train_test(
@@ -283,6 +322,7 @@ class TestMethodsUnit1(unittest.TestCase):
             weights=defaultdict(float), # Initialize with all weights at zero
             executor=Executor.execute)
             
+        # Train based on correct/incorrect denotation
         from metrics import DenotationAccuracyMetric
         
         b_trn, b_tst, a_trn, a_tst = arithmetic_model.train_test(
@@ -300,6 +340,15 @@ class TestMethodsUnit1(unittest.TestCase):
         self.assertEqual(a_trn['denotation accuracy'], 13) # Improvement
 
     def test_learning_from_many_denotations(self):
+        """
+        Large number of examples are used for training.
+        Last 4 arithmetic_examples are used for testing.
+        b_trn: performance metrics on training set before training
+        a_trn: performance metrics on training set after training
+
+        denotation accuracy: # of examples where denotation of parse at position 
+        0 was correct
+        """
         arithmetic_grammar = Grammar(self.arithmetic_rules)
         arithmetic_examples = self.two_parse_examples + self.one_parse_examples
         

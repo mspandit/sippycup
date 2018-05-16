@@ -398,6 +398,8 @@ def demo():
                 semantics=('.argmax', 'has_age', '.any'),
                 denotation=('homer',)),
     ]
+    # Ignore the input, but demonstrate that the executor takes the semantics
+    # and produces the denotation.
     for example in examples:
         deno = executor.execute(example.semantics)
         assert deno == example.denotation, example.input + ': ' + str(deno)

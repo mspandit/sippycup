@@ -9,6 +9,7 @@ class Executor(object):
     def __init__(self):
         super(Executor, self).__init__()
     
+    # Map operations to functions that execute them on arguments
     ops = {
         '~': lambda x: -x,
         '+': lambda x, y: x + y,
@@ -19,10 +20,12 @@ class Executor(object):
     @staticmethod
     def execute(sem):
         if isinstance(sem, tuple):
-            op = Executor.ops[sem[0]]
+            op = Executor.ops[sem[0]] # Get the operator function
+            # Collect the values of the arguments
             args = []
             for arg in sem[1:]:
                 args.append(Executor.execute(arg))
+            # Call the operator function on the arguments
             return op(*args)
         else:
             return sem

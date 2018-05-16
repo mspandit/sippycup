@@ -79,6 +79,8 @@ class TestMethods(unittest.TestCase):
         model = Model(grammar=grammar, executor=self.geobase.executor().execute)
         metric = DenotationOracleAccuracyMetric()
 
+        # If printing=True, prints a sampling of wins (correct semantics in 
+        # first parse) and losses on the dataset.
         metric_values = sample_wins_and_losses(domain=self.domain, model=model, metric=metric, seed=1, printing=False)
         self.assertEqual(17, metric_values['number of parses'])
 
@@ -125,6 +127,8 @@ class TestMethods(unittest.TestCase):
         model = Model(grammar=grammar, executor=self.geobase.executor().execute)
         metric = DenotationOracleAccuracyMetric()
 
+        # If printing=True, prints a sampling of wins (correct semantics in 
+        # first parse) and losses on the dataset.
         metric_values = sample_wins_and_losses(domain=self.domain, model=model, metric=metric, seed=1, printing=False)
         self.assertEqual(20, metric_values['number of parses'])
 
@@ -254,6 +258,8 @@ class TestMethods(unittest.TestCase):
         model = Model(grammar=grammar, executor=self.geobase.executor().execute)
         metric = DenotationOracleAccuracyMetric()
 
+        # If printing=True, prints a sampling of wins (correct semantics in 
+        # first parse) and losses on the dataset.
         metric_values = sample_wins_and_losses(domain=self.domain, model=model, metric=metric, seed=1, printing=False)
         self.assertEqual(256, metric_values['number of parses'])
 
@@ -297,6 +303,8 @@ class TestMethods(unittest.TestCase):
         model = Model(grammar=grammar, executor=self.geobase.executor().execute)
         metric = DenotationOracleAccuracyMetric()
 
+        # If printing=True, prints a sampling of wins (correct semantics in 
+        # first parse) and losses on the dataset.
         metric_values = sample_wins_and_losses(domain=self.domain, model=model, metric=metric, seed=1, printing=False)
         self.assertEqual(1177, metric_values['number of parses'])
 
@@ -357,6 +365,8 @@ class TestMethods(unittest.TestCase):
         model = Model(grammar=grammar, executor=self.geobase.executor().execute)
         metric = DenotationOracleAccuracyMetric()
 
+        # If printing=True, prints a sampling of wins (correct semantics in 
+        # first parse) and losses on the dataset.
         metric_values = sample_wins_and_losses(domain=self.domain, model=model, metric=metric, seed=1, printing=False)
         self.assertEqual(2658, metric_values['number of parses'])
     
@@ -401,6 +411,8 @@ class TestMethods(unittest.TestCase):
         model = Model(grammar=grammar, executor=self.geobase.executor().execute)
         metric = DenotationOracleAccuracyMetric()
 
+        # If printing=True, prints a sampling of wins (correct semantics in 
+        # first parse) and losses on the dataset.
         metric_values = sample_wins_and_losses(domain=self.domain, model=model, metric=metric, seed=1, printing=False)
         self.assertEqual(11562, metric_values['number of parses'])
         self.assertEqual(152, metric_values['denotation accuracy'])
@@ -422,6 +434,8 @@ class TestMethods(unittest.TestCase):
 
         grammar = Unit3Grammar(rules=rules, annotators=self.annotators)
         model = Model(grammar=grammar, executor=self.geobase.executor().execute)
+        # Set print_examples=True and look for 'what state has the shortest
+        # river?' and 
         evaluate_model(model=model,
                        examples=geo880_train_examples[:10],
                        metrics=denotation_match_metrics(),
