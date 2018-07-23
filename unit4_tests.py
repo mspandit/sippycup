@@ -3,11 +3,9 @@ from grammar import Rule, Grammar
 from collections import defaultdict
 from torch_fw import Module, Embedding, GRU, SGD, Linear, Dropout, Variable
 from torch_fw import LongTensor, zeros, NLLLoss, log_softmax, softmax, relu, manual_seed
-from torch_fw import cat, bmm
+from torch_fw import cat, bmm, LogSoftmax
 
 class GeneratingGrammar(Grammar):
-    """docstring for GeneratingGrammar"""
-
     MAX_LENGTH = 20
 
     def __init__(self, rules):
@@ -73,7 +71,6 @@ class GeneratingGrammar(Grammar):
 
 
 class InputVocabulary(object):
-    """docstring for Vocabulary"""
     def __init__(self):
         super(InputVocabulary, self).__init__()
         self.vocabulary = [
@@ -91,7 +88,6 @@ class InputVocabulary(object):
 
 
 class OutputVocabulary(object):
-    """docstring for OutputVocabulary"""
     def __init__(self):
         super(OutputVocabulary, self).__init__()
         self.vocabulary = [
@@ -107,7 +103,6 @@ class OutputVocabulary(object):
 
 
 class DataSet(object):
-    """docstring for DataSet"""
     def __init__(self):
         super(DataSet, self).__init__()
         self.training_pairs = [
@@ -150,18 +145,6 @@ class DataSet(object):
 
 
 class EncoderRNN(Module):
-    """
-    The Encoder
-    -----------
-
-    The encoder of a seq2seq network is a RNN that outputs some value for
-    every word from the input sentence. For every input word the encoder
-    outputs a vector and a hidden state, and uses the hidden state for the
-    next input word.
-
-    .. figure:: /_static/img/seq-seq-images/encoder-network.png
-       :alt:
-    """
     def __init__(self, input_size, hidden_size, learning_rate=0.01):
         super(EncoderRNN, self).__init__()
         self.hidden_size = hidden_size
@@ -180,12 +163,6 @@ class EncoderRNN(Module):
         return Variable(zeros(max_length, self.hidden_size))
 
     def function(self, inputs, max_length):
-        """
-        The encoder function accepts each input sequentially, using the same
-        hidden variables. The output variables are collected and returned
-        along with the hidden variables.
-        """
-
         encoder_outputs = self.initOutputVariables(max_length)
         encoder_hidden = self.initHiddenVariable()
 
@@ -199,32 +176,15 @@ class EncoderRNN(Module):
 
 
 class DecoderRNN(Module):
-    """
-    Simple Decoder
-    ^^^^^^^^^^^^^^
-
-    In the simplest seq2seq decoder we use only last output of the encoder.
-    This last output is sometimes called the *context vector* as it encodes
-    context from the entire sequence. This context vector is used as the
-    initial hidden state of the decoder.
-
-    At every step of decoding, the decoder is given an input token and
-    hidden state. The initial input token is the start-of-string ``<SOS>``
-    token, and the first hidden state is the context vector (the encoder's
-    last hidden state).
-
-    .. figure:: /_static/img/seq-seq-images/decoder-network.png
-       :alt:
-    """
     def __init__(self, hidden_size, output_size, learning_rate=0.1):
         super(DecoderRNN, self).__init__()
         self.hidden_size = hidden_size
 
-        self.embedding = nn.Embedding(output_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
-        self.out = nn.Linear(hidden_size, output_size)
-        self.softmax = nn.LogSoftmax(dim=1)
-        self.optimizer = optim.SGD(self.parameters(), lr=learning_rate)
+        self.embedding = Embedding(output_size, hidden_size)
+        self.gru = GRU(hidden_size, hidden_size)
+        self.out = Linear(hidden_size, output_size)
+        self.softmax = LogSoftmax(dim=1)
+        self.optimizer = SGD(self.parameters(), lr=learning_rate)
 
     def forward(self, input, hidden):
         output, hidden = self.gru(
@@ -273,35 +233,6 @@ class DecoderRNN(Module):
 
 
 class AttnDecoderRNN(Module):
-    """
-    Attention Decoder
-    ^^^^^^^^^^^^^^^^^
-
-    If only the context vector is passed betweeen the encoder and decoder,
-    that single vector carries the burden of encoding the entire sentence.
-
-    Attention allows the decoder network to "focus" on a different part of
-    the encoder's outputs for every step of the decoder's own outputs. First
-    we calculate a set of *attention weights*. These will be multiplied by
-    the encoder output vectors to create a weighted combination. The result
-    (called ``attn_applied`` in the code) should contain information about
-    that specific part of the input sequence, and thus help the decoder
-    choose the right output words.
-
-    .. figure:: https://i.imgur.com/1152PYf.png
-       :alt:
-
-    Calculating the attention weights is done with another feed-forward
-    layer ``attn``, using the decoder's input and hidden state as inputs.
-    Because there are sentences of all sizes in the training data, to
-    actually create and train this layer we have to choose a maximum
-    sentence length (input length, for encoder outputs) that it can apply
-    to. Sentences of the maximum length will use all the attention weights,
-    while shorter sentences will only use the first few.
-
-    .. figure:: /_static/img/seq-seq-images/attention-decoder-network.png
-       :alt:
-    """
     def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=20, learning_rate=0.01):
         super(AttnDecoderRNN, self).__init__()
         self.hidden_size = hidden_size
