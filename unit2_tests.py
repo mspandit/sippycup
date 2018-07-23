@@ -553,7 +553,7 @@ class TestMethodsUnit2(unittest.TestCase):
 
         # If printing=True, prints a sampling of wins (correct semantics in 
         # first parse) and losses on the dataset.
-        metric_values = sample_wins_and_losses(domain=domain, model=model, metric=metric, seed=31, printing=False)
+        metric_values = sample_wins_and_losses(domain=domain, model=model, metric=metric, seed=31, printing=True)
     
     
 if __name__ == "__main__":

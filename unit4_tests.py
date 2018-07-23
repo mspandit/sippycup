@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
-import torch
-import torch.nn as nn
-from torch import optim
-from torch.autograd import Variable
 from grammar import Rule, Grammar
-import torch.nn.functional as F
 from collections import defaultdict
-
+from torch_fw import Module, Embedding, GRU, SGD, Linear, Dropout, Variable
+from torch_fw import LongTensor, zeros, NLLLoss, log_softmax, softmax, relu, manual_seed
+from torch_fw import cat, bmm
 
 class GeneratingGrammar(Grammar):
     """docstring for GeneratingGrammar"""
@@ -152,7 +149,7 @@ class DataSet(object):
         self.n_output_words = len(self.output_lang.vocabulary)
 
 
-class EncoderRNN(nn.Module):
+class EncoderRNN(Module):
     """
     The Encoder
     -----------
@@ -169,18 +166,18 @@ class EncoderRNN(nn.Module):
         super(EncoderRNN, self).__init__()
         self.hidden_size = hidden_size
 
-        self.embedding = nn.Embedding(input_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
-        self.optimizer = optim.SGD(self.parameters(), lr=learning_rate)
+        self.embedding = Embedding(input_size, hidden_size)
+        self.gru = GRU(hidden_size, hidden_size)
+        self.optimizer = SGD(self.parameters(), lr=learning_rate)
 
     def forward(self, input, hidden):
         return self.gru(self.embedding(input).view(1, 1, -1), hidden)
 
     def initHiddenVariable(self):
-        return Variable(torch.zeros(1, 1, self.hidden_size))
+        return Variable(zeros(1, 1, self.hidden_size))
 
     def initOutputVariables(self, max_length):
-        return Variable(torch.zeros(max_length, self.hidden_size))
+        return Variable(zeros(max_length, self.hidden_size))
 
     def function(self, inputs, max_length):
         """
@@ -201,7 +198,7 @@ class EncoderRNN(nn.Module):
         return encoder_outputs, encoder_hidden
 
 
-class DecoderRNN(nn.Module):
+class DecoderRNN(Module):
     """
     Simple Decoder
     ^^^^^^^^^^^^^^
@@ -231,15 +228,15 @@ class DecoderRNN(nn.Module):
 
     def forward(self, input, hidden):
         output, hidden = self.gru(
-            F.relu(self.embedding(input).view(1, 1, -1)), 
+            relu(self.embedding(input).view(1, 1, -1)), 
             hidden)
         return self.softmax(self.out(output[0])), hidden
 
     def initHiddenVariable(self):
-        return Variable(torch.zeros(1, 1, self.hidden_size))
+        return Variable(zeros(1, 1, self.hidden_size))
 
     def initInputVariable(self, token):
-        return Variable(torch.LongTensor([[token]]))
+        return Variable(LongTensor([[token]]))
 
     def function(self, _, targets, hidden, criterion, SOS_token, EOS_token):
         """
@@ -275,7 +272,7 @@ class DecoderRNN(nn.Module):
         return retval
 
 
-class AttnDecoderRNN(nn.Module):
+class AttnDecoderRNN(Module):
     """
     Attention Decoder
     ^^^^^^^^^^^^^^^^^
@@ -312,36 +309,36 @@ class AttnDecoderRNN(nn.Module):
         self.dropout_p = dropout_p
         self.max_length = max_length
 
-        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
-        self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
-        self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
-        self.dropout = nn.Dropout(self.dropout_p)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
-        self.out = nn.Linear(self.hidden_size, self.output_size)
-        self.optimizer = optim.SGD(self.parameters(), lr=learning_rate)
+        self.embedding = Embedding(self.output_size, self.hidden_size)
+        self.attn = Linear(self.hidden_size * 2, self.max_length)
+        self.attn_combine = Linear(self.hidden_size * 2, self.hidden_size)
+        self.dropout = Dropout(self.dropout_p)
+        self.gru = GRU(self.hidden_size, self.hidden_size)
+        self.out = Linear(self.hidden_size, self.output_size)
+        self.optimizer = SGD(self.parameters(), lr=learning_rate)
 
     def forward(self, input, hidden, encoder_outputs):
         embedded = self.dropout(self.embedding(input).view(1, 1, -1))
 
-        attn_weights = F.softmax(
-            self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
+        attn_weights = softmax(
+            self.attn(cat((embedded[0], hidden[0]), 1)), dim=1)
 
         output, hidden = self.gru(
-            F.relu(
+            relu(
                 self.attn_combine(
-                    torch.cat((
+                    cat((
                         embedded[0], 
-                        torch.bmm(attn_weights.unsqueeze(0),
+                        bmm(attn_weights.unsqueeze(0),
                         encoder_outputs.unsqueeze(0))[0]), 
                     1)).unsqueeze(0)), 
             hidden)
-        return F.log_softmax(self.out(output[0]), dim=1), hidden
+        return log_softmax(self.out(output[0]), dim=1), hidden
 
     def initHiddenVariable(self):
-        return Variable(torch.zeros(1, 1, self.hidden_size))
+        return Variable(zeros(1, 1, self.hidden_size))
 
     def initInputVariable(self, token):
-        return Variable(torch.LongTensor([[token]]))
+        return Variable(LongTensor([[token]]))
 
     def function(self, outputs, targets, hidden, criterion, SOS_token, EOS_token):
         """
@@ -393,7 +390,7 @@ class Model(object):
 
         indexes = indexesFromSentence(lang, sentence)
         indexes.append(lang['EOS'])
-        return Variable(torch.LongTensor(indexes).view(-1, 1))
+        return Variable(LongTensor(indexes).view(-1, 1))
 
     def variablesFromPair(self, pair):
         return (
@@ -416,7 +413,7 @@ class Model(object):
                 encoder_outputs,
                 training_pair[1], 
                 hidden, 
-                nn.NLLLoss(), 
+                NLLLoss(), 
                 self.grammar.input_lang()['SOS'],
                 self.grammar.input_lang()['EOS'])
 
@@ -442,7 +439,7 @@ class Model(object):
 import unittest
 import random
 random.seed(1234)
-torch.manual_seed(1234)
+manual_seed(1234)
 
 class TestMethods(unittest.TestCase):
     numeral_rules = [

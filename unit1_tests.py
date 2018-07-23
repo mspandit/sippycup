@@ -167,10 +167,10 @@ class TestMethodsUnit1(unittest.TestCase):
             examples=examples,
             print_examples=False)
 
-        # three examples where the parse at position 0 was not correct
-        self.assertEqual(metrics['semantics accuracy'], 14) 
         # in every example we produced some correct parse.
         self.assertEqual(metrics['semantics oracle accuracy'], 17)
+        # three examples where the parse at position 0 was not correct
+        self.assertEqual(metrics['semantics accuracy'], 14) 
         
         # SLIDES
 
@@ -259,8 +259,8 @@ class TestMethodsUnit1(unittest.TestCase):
             model=arithmetic_model,
             examples=self.one_parse_examples + self.two_parse_examples
         )
-        self.assertEqual(metrics['semantics accuracy'], 16) # Improvement
         self.assertEqual(metrics['semantics oracle accuracy'], 17)
+        self.assertEqual(metrics['semantics accuracy'], 16) # Improvement
         # Exercise: introduce new features to address "three plus three minus two"
         
         # SLIDES
