@@ -4,6 +4,7 @@ from collections import defaultdict
 from torch_fw import Module, Embedding, GRU, SGD, Linear, Dropout, Variable
 from torch_fw import LongTensor, zeros, NLLLoss, log_softmax, softmax, relu, manual_seed
 from torch_fw import cat, bmm, LogSoftmax
+import copy
 
 class GeneratingGrammar(Grammar):
     MAX_LENGTH = 20
@@ -232,6 +233,31 @@ class DecoderRNN(Module):
         return retval
 
 
+class BeamSearchState(object):
+    """docstring for BeamSearchState"""
+    def __init__(self, token_list, finished, decoder_input, hidden, probability=0.0):
+        super(BeamSearchState, self).__init__()
+        self.token_list = token_list
+        self.finished = finished
+        self.decoder_input = decoder_input
+        self.hidden = hidden
+        self.probability = probability
+
+    def initInputVariable(self, token):
+        return Variable(LongTensor([[token]]))
+
+    def advance(self, decoder, encoder_outputs, EOS_token):
+        """docstring for advance"""
+        decoder_output, hidden = decoder(self.decoder_input, self.hidden, encoder_outputs)
+        sorted_probabilities, sorted_predictions = decoder_output.data.topk(2)
+        retval = []
+        for np, ni in zip(sorted_probabilities[0], sorted_predictions[0]):
+            if ni == EOS_token:
+                retval.append(BeamSearchState(self.token_list, True, self.initInputVariable(ni), hidden, self.probability + np))
+            else:
+                retval.append(BeamSearchState(self.token_list + [ni], False, self.initInputVariable(ni), hidden, self.probability + np))
+        return retval
+
 class AttnDecoderRNN(Module):
     def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=20, learning_rate=0.01):
         super(AttnDecoderRNN, self).__init__()
@@ -292,18 +318,39 @@ class AttnDecoderRNN(Module):
                 break
         return loss
 
-    def infer(self, encoder_outputs, hidden, SOS_token, EOS_token):
-        decoder_input = self.initInputVariable(SOS_token)
-        retval = []
-        while True:
-            decoder_output, hidden = self(decoder_input, hidden, encoder_outputs)
-            _, topi = decoder_output.data.topk(1)
-            ni = topi[0][0]
-            decoder_input = self.initInputVariable(ni)
-            if ni == EOS_token:
-                break
-            retval.append(ni)
-        return retval
+    def infer(self, encoder_outputs, hidden, SOS_token, EOS_token, max_length, search_states=None, beam_width=20):
+        if search_states is None:
+            return self.infer(
+                encoder_outputs,
+                hidden,
+                SOS_token,
+                EOS_token,
+                max_length,
+                [BeamSearchState([], False, self.initInputVariable(SOS_token), hidden)],
+                beam_width)
+        elif any([not s.finished for s in search_states]):
+            new_search_states = []
+            for state in search_states:
+                if state.finished:
+                    new_search_states += [state]
+                elif len(state.token_list) < max_length:
+                    new_search_states += state.advance(
+                        self,
+                        encoder_outputs,
+                        EOS_token)
+            new_search_states.sort(
+                key=lambda state: state.probability, reverse=True)
+            new_search_states = new_search_states[:beam_width]
+            return self.infer(
+                encoder_outputs,
+                hidden,
+                SOS_token,
+                EOS_token,
+                max_length,
+                new_search_states,
+                beam_width)
+        else:
+            return search_states
 
 
 class Model(object):
@@ -360,12 +407,13 @@ class Model(object):
         encoder_outputs, hidden = self.encoder.function(
             self.variableFromSentence(self.grammar.input_lang(), inputs), 
             self.grammar.MAX_LENGTH)
-        inferences = self.decoder.infer(
+        inference_states = self.decoder.infer(
             encoder_outputs,
             hidden, 
             self.grammar.input_lang()['SOS'],
-            self.grammar.output_lang()['EOS'])
-        return [self.grammar.output_vocabulary[t] for t in inferences]
+            self.grammar.output_lang()['EOS'],
+            2 * self.grammar.MAX_LENGTH)
+        return [[self.grammar.output_vocabulary[t] for t in state.token_list] for state in inference_states]
 
 import unittest
 import random
@@ -399,11 +447,11 @@ class TestMethods(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.model = Model(48, GeneratingGrammar(TestMethods.arithmetic_rules))
+        cls.model = Model(128, GeneratingGrammar(TestMethods.arithmetic_rules))
         loss = cls.model.train()
         current_loss = 1
         iter = 0
-        while current_loss > 1e-3:
+        while current_loss > 5e-4:
             current_loss = next(loss)
             if (0 == iter % 1000):
                 print(current_loss)
@@ -413,11 +461,14 @@ class TestMethods(unittest.TestCase):
         goods = 0
         bads = 0
         for sentence, target in DataSet().training_pairs + DataSet().testing_pairs:
-            if target.split() == self.model.infer(sentence):
+            inferences = self.model.infer(sentence)
+            if target.split() in inferences:
                 goods += 1
             else:
                 bads += 1
-                print("sentence: %s\ntarget: %s\nactual: %s" % (sentence, target, ' '.join(self.model.infer(sentence))))
+                print("sentence: %s\ntarget: %s" % (sentence, target))
+                for inference in inferences:
+                    print("actual: %s" % (' '.join(inference)))
         print("%s good, %s bad" % (goods, bads))
 
     def test2(self):
